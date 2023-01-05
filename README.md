@@ -1,4 +1,3 @@
-
 # Fetch Rewards Challenge
 
 https://bitbucket.org/fetchrewards/data-engineering-take-home/src/master/
@@ -6,6 +5,46 @@ https://bitbucket.org/fetchrewards/data-engineering-take-home/src/master/
 ## A Python ETL app to persist messages from SQS
 
 I chose Python to build this application because i'm very comfortable with it and is generally concise compared to other languages like C#.
+
+## How to Execute
+
+> **_NOTE:_**  Steps 1 - 3, 5 are copied over from take-home project
+
+1. You will need the following installed on your local machine
+    * make
+        * Ubuntu -- `apt-get -y install make`
+        * Windows -- `choco install make`
+        * Mac -- `brew install make`
+    * python3 -- [python install guide](https://www.python.org/downloads/)
+    * pip3 -- `python -m ensurepip --upgrade` or run `make pip-install` in the project root
+    * awslocal -- `pip install awscli-local`  or run `make pip install` in the project root
+    * docker -- [docker install guide](https://docs.docker.com/get-docker/)
+    * docker-compose -- [docker-compose install guide]()
+2. Run `make start` to execute the docker-compose file in the the project
+    * An AWS SQS Queue is created
+    * A script is run to write 100 JSON records to the queue
+    * A Postgres database will be stood up
+    * A user_logins table will be created in the public schema
+3. Test local access
+    * Read a message from the queue using awslocal, `awslocal sqs receive-message --queue-url http://localhost:4566/000000000000/login-queue`
+    * Connect to the Postgres database, verify the table is created
+    * username = `postgres`
+    * database = `postgres`
+    * password = `postgres`
+4. Change working directory to src
+	* Install virtualenv `python3 -m pip install virtualenv`
+	* Create virtualenv `python3 -m venv fetch_project`
+	* Activate the virtualenv `source fetch_project/bin/activate`
+	* Install all dependencies from requirements.txt file `pip install -r requirements.txt`
+	* Execute script `python3 main.py`
+	* Connect to Postgres database and verify table is populated
+```bash
+# password: postgres
+
+psql -d postgres -U postgres  -p 5432 -h localhost -W
+Password:
+```
+5. Run `make stop` to terminate the docker containers and optionally run `make clean` to clean up docker resources.
 
 ## Design choices:
 ### Extract:
