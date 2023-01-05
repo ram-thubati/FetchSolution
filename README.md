@@ -50,20 +50,36 @@ Password:
 ### Extract:
 Long-polling a batch of messages from SQS:
 * Short polling will incur greater cost, higher network traffic and hog server resources.
-* Using long polling with a time delay of 10s will cost less during off-peak periods.
+* Using long polling with a wait time of 10s will cost less during off-peak periods.
+* In Production, this wait time will depend on the operating scale and messages per batch. 
+* No. of messages per batch is chosen as 16 to emulate real-time behavior. In a production system, this could be much greater.
 
-This delay will depend on the operating scale and messages per batch.
-### Transformations:
-1. **app_version** - In raw JSON, the version number is of format Major.Minor.Patch (6.4.8). Since the target datatype is integer, I choose to extract only the Major version number from source.
+#### Transformations:
 
-2. **Masking** - Since requirements calls for masking `device_id` and `ip` - I choose to generate a SHA-256 hash with *SECRET_SALT*. With same *SECRET_SALT* used for all messages, output of SHA-256
-is deterministic and is possible to identify duplicates for down-stream analytics.
+1.  **app_version** - In raw JSON, the version number is of format Major.Minor.Patch (6.4.8). Since the target datatype is integer, I choose to extract only the Major version number from source.
+```python
+self.app_version = int(json_message["app_version"].partition('.')[0])
+```
 
-3. **CreateDate** - Source doesn't contain an attribute called `create_date`. So default value is the date this message is read by ETL application.
+2.  **Masking** - Since requirements calls for masking `device_id` and `ip` - I choose to generate a SHA-256 hash with *SECRET_SALT*. With same *SECRET_SALT* used for all messages, output of SHA-256 is deterministic and is possible to identify duplicates for down-stream analytics.
+```python
+self.masked_ip = self.calculateHash(json_message["ip"],secret_salt)
+self.masked_device_id = self.calculateHash(json_message["device_id"], secret_salt)
+```
+  
+3.  **CreateDate** - Source doesn't contain an attribute called `create_date`. So default value is the date this message is read by ETL application.
+```python
+#create_date defaults to current system date.
 
+self.create_date = datetime.datetime.now().date()
+```
 ### Loading:
+
 Since I used long-polling and reading messages in batch - I used the `executemany` method to bulk-insert into user_logins tables to reduce the no. of database connections.
 
+```python
+cur.executemany(insert_statement, messages_to_insert)
+```
 
 # Production Infrastructure build out:
 
@@ -95,7 +111,9 @@ By using KMS we can control access to keys using Key policies and IAM roles to "
 
 * This product will be hosted on AWS, so we can leverage AWS KMS service to create and securely store and access Symmetric keys.
 
-**Telemetry:** By knowing the rate at which messages are arriving in Q, we could provision capacity ahead-of-time and reduce costs.
+**Logging:** At the moment logging is just a bunch of print statements to console. When hosted on AWS, we could leverage Amazon CloudWatch Logs.
+
+**Telemetry:** By knowing the rate at which messages are arriving in Q, we could provision capacity ahead-of-time and reduce costs. This also allows us to determine hyper paramters like messages_per_batch and long polling wait time.
 
 **Dead letter Queue:** At the moment, this application discards messages that couldn't be parsed. These could be retained for analysis downstream. Dirty data is still Data!!
 
