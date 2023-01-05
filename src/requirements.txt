@@ -9,6 +9,7 @@ filelock==3.8.0
 jmespath==1.0.1
 localstack-client==1.39
 platformdirs==2.5.2
+psycopg2-binary==2.9.5
 pyasn1==0.4.8
 python-dateutil==2.8.2
 PyYAML==5.4.1
