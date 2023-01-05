@@ -57,12 +57,11 @@ if __name__ == "__main__":
                 message_body = json.loads(message["Body"])
                 receipt_handle = message["ReceiptHandle"]
                 
-                print(message_body)
                 try:
                     m = LoginMessage(message_body,HASH_SECRET_SALT)
                     messages_to_insert.append(m.getTuple())
                 except:
-                    print("Malformed message Found..")
+                    print("unknown message format found. Discarded message.")
                     continue
                 finally:
                     #regardless of the message, it should be deleted from Q once its read.
@@ -84,7 +83,7 @@ if __name__ == "__main__":
                 cur.close()
                 conn.close()
 
-
+        #in a production system, this else block is absent.
         else:
-            #in a production system, this else block is absent.
+            print("No more messages to read from Q. Program will now terminate.")
             break
